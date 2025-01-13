@@ -59,7 +59,7 @@ public class ProfileController {
 
 	private String getGuesserProfile(Model model, User user) {
 		if (!cutoff.isAbleToGuessCurrentYear() || userService.isLoggedInUser(user)) {
-			UserScore userScore = new UserScore(user, year, jdbcTemplate);
+			UserScore userScore = new UserScore(user.id, year, jdbcTemplate);
 			model.addAttribute("tables", userScore.getAllTables());
 		} else {
 			List<Table> tables = new ArrayList<>();

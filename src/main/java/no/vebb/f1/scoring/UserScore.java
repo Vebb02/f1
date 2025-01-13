@@ -6,16 +6,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import no.vebb.f1.user.User;
 import no.vebb.f1.util.Table;
 
 public class UserScore {
 	
-	private final User user;
+	private final UUID id;
 	private final int year;
 	private final JdbcTemplate jdbcTemplate;
 	private int score;
@@ -28,11 +28,11 @@ public class UserScore {
 	public final Table summaryTable;
 	private final List<List<String>> summaryTableBody = new ArrayList<>();
 
-	public UserScore(User user, int year, JdbcTemplate jdbcTemplate) {
-		this.user = user;
+	public UserScore(UUID id, int year, JdbcTemplate jdbcTemplate, int raceNumber) {
+		this.id = id;
 		this.year = year;
 		this.jdbcTemplate = jdbcTemplate;
-		this.raceNumber = getRaceNumber();
+		this.raceNumber = raceNumber;
 		this.driversTable = initializeDriversTable();
 		this.constructorsTable = initializeConstructorsTable();
 		this.flagsTable = initializeFlagsTable();
@@ -41,7 +41,11 @@ public class UserScore {
 		this.summaryTable = initializeSummaryTable();
 	}
 
-	private int getRaceNumber() {
+	public UserScore(UUID id, int year, JdbcTemplate jdbcTemplate) {
+		this(id, year, jdbcTemplate, UserScore.getRaceNumber(jdbcTemplate, year));
+	}
+
+	private static int getRaceNumber(JdbcTemplate jdbcTemplate, int year) {
 		final String getRaceNumberSql = """
 			SELECT ro.id
 			FROM RaceOrder ro
@@ -89,7 +93,7 @@ public class UserScore {
 		} else {
 			competitors = jdbcTemplate.query(standingsSql, (rs, rowNum) -> rs.getString(colname), raceNumber);
 		}
-		List<String> guessed = jdbcTemplate.query(guessedSql, (rs, rowNum) -> rs.getString(colname), year, user.id);
+		List<String> guessed = jdbcTemplate.query(guessedSql, (rs, rowNum) -> rs.getString(colname), year, id);
 		Map<String, Integer> guessedToPos = new HashMap<>();
 		for (int i = 0; i < guessed.size(); i++) {
 			guessedToPos.put(guessed.get(i), i+1);
@@ -139,7 +143,7 @@ public class UserScore {
 		""";
 		
 
-		List<Map<String, Object>> sqlRes = jdbcTemplate.queryForList(sql, year, user.id);
+		List<Map<String, Object>> sqlRes = jdbcTemplate.queryForList(sql, year, id);
 
 		for (Map<String, Object> row : sqlRes) {
 			String flag = translateFlagName((String) row.get("type"));
@@ -182,7 +186,7 @@ public class UserScore {
 		WHERE dpg.category = ? AND dpg.guesser = ? AND ro.year = ?
 		ORDER BY r.id ASC
 		""";
-		List<Map<String, Object>> sqlRes = jdbcTemplate.queryForList(sql, category, user.id, year);
+		List<Map<String, Object>> sqlRes = jdbcTemplate.queryForList(sql, category, id, year);
 
 		for (Map<String, Object> row : sqlRes) {
 			String raceName = (String) row.get("race_name");

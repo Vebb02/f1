@@ -8,7 +8,28 @@
 	<link rel="stylesheet" th:href="@{/style.css}">
 	<link rel="stylesheet" th:href="@{/tables.css}">
 	<title>F1 Tipping</title>
+	<style>
+		.graph-container {
+			text-align: center;
+		}
+
+		@media (max-width: 600px) {
+			#graph {
+				display: none;
+			}
+		}
+
+		@media (min-width: 601px) {
+			#graph {
+				display: inline-block;
+				width: 100%;
+				max-width: 800px;
+				height: 650px;
+			}
+		}
+	</style>
 </head>
+<script src="https://www.gstatic.com/charts/loader.js"></script>
 
 <body>
 	<header th:insert="~{header}"></header>
@@ -37,6 +58,42 @@
 				</ul>
 			</div>
 		</div>
+		<div class="graph-container">
+			<div id="graph"></div>
+		</div>
+		<script th:inline="javascript">
+			google.charts.load('current', { packages: ['corechart'] });
+			google.charts.setOnLoadCallback(drawChart);
+
+			function drawChart() {
+
+				const scores = /*[[${scores}]]*/[];
+				const guessersNames = /*[[${guessersNames}]]*/[];
+				if (scores.length === 0) {
+					const chartContainer = document.getElementById('graph').parentElement;
+					chartContainer.remove();
+					return;
+				}
+				const data = google.visualization.arrayToDataTable([
+					['Poeng', ...guessersNames],
+					...scores[0].map((_, index) => {
+						return [index, ...scores.map(scoreList => scoreList[index])];
+					})
+				]);
+
+				const options = {
+					title: 'Utvikling gjennom sesongen',
+					hAxis: { title: 'Løp', ticks: scores[0].map((_, i) => i) },
+					vAxis: { title: 'Poeng' },
+					legend: { position: 'right' },
+					chartArea: { width: '60%', height: '70%' }
+				};
+
+				const chart = new google.visualization.LineChart(document.getElementById('graph'));
+				chart.draw(data, options);
+
+			}
+		</script>
 		<div class="linkList">
 			<a th:if="${raceGuess}" th:href="@{/race-guess}">Tippet på løp</a>
 			<a th:if="${isAdmin}" th:href="@{/admin}">Admin Portal</a>
